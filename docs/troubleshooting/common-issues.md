@@ -2,19 +2,21 @@
 
 ## App won't start
 
-**Symptoms:** Pods in `CrashLoopBackOff` or `Error` state.
+**Symptoms:** Backend container exits or `Connection refused` on port 8047.
 
 **Solutions:**
 
 ```bash
-# Check logs
-kubectl logs -n dclaw-quality deployment/dclaw-quality-backend
+# Check backend logs
+docker compose logs -f backend
 
-# Check events
-kubectl get events -n dclaw-quality --sort-by='.lastTimestamp'
+# Verify database is healthy
+docker compose logs -f postgres
+docker compose exec postgres pg_isready -U postgres
 
-# Verify database connection
-kubectl exec -n dclaw-quality deployment/dclaw-quality-backend --   python -c "import asyncio; from sqlalchemy import text; ..."
+# Run migrations manually
+cd backend
+alembic upgrade head
 ```
 
 ## Database connection errors
@@ -23,22 +25,55 @@ kubectl exec -n dclaw-quality deployment/dclaw-quality-backend --   python -c "i
 
 **Solutions:**
 
-1. Verify the database cluster is ready:
+1. Verify PostgreSQL is running:
    ```bash
-   kubectl get clusters -n dclaw-quality
+   docker compose ps
    ```
 
-2. Check the connection string secret:
+2. Check the connection string:
    ```bash
+   echo $DATABASE_URL
+   # Expected: postgresql+asyncpg://postgres:postgres@localhost:5432/dclaw_quality
+   ```
+
+3. For Kubernetes:
+   ```bash
+   kubectl get clusters -n dclaw-quality
    kubectl get secret dclaw-quality-db-credentials -n dclaw-quality
    ```
 
 ## Frontend can't reach backend
 
-**Symptoms:** Browser console shows CORS errors or 502 Bad Gateway.
+**Symptoms:** Browser console shows CORS errors or empty dashboard.
 
 **Solutions:**
 
-1. Verify backend pod is running
-2. Check ingress configuration
-3. Verify `NEXT_PUBLIC_API_URL` is set correctly
+1. Verify backend is running on `localhost:8047`
+2. Check `NEXT_PUBLIC_API_URL` is set to `http://localhost:8047`
+3. If using Docker, rebuild the frontend image after changing `NEXT_PUBLIC_API_URL`:
+   ```bash
+   docker compose up -d --build frontend
+   ```
+
+## Tests fail with database error
+
+**Symptoms:** `pytest` fails with connection refused.
+
+**Solutions:**
+
+1. Ensure PostgreSQL is running on `localhost:5432`
+2. Create the test database:
+   ```bash
+   psql -h localhost -U postgres -c "CREATE DATABASE dclaw_app_test;"
+   ```
+3. Check `DATABASE_URL` in `conftest.py` points to `localhost:5432`
+
+## AI Suggest returns no results
+
+**Symptoms:** AI classification button does nothing.
+
+**Solutions:**
+
+1. The rules engine runs entirely in the backend — no external API key is needed for Phase 1
+2. Ensure the backend is reachable from the frontend (`NEXT_PUBLIC_API_URL`)
+3. Check browser network tab for `POST /api/v1/ai/classify-defect`

@@ -1,6 +1,18 @@
 # Installation
 
-## Via DPanel
+## Via Docker Compose (Recommended for Local Dev)
+
+```bash
+cd dclaw-quality
+docker compose up -d --build
+```
+
+Services:
+- **postgres** — PostgreSQL 16 with persistent volume
+- **backend** — FastAPI on port `8047`
+- **frontend** — Next.js on port `3047`
+
+## Via DPanel / Kubernetes
 
 1. Open DPanel at `https://panel.yourdomain.com`
 2. Find **DClaw Quality** in the app grid
@@ -15,7 +27,6 @@
 ## Via kubectl
 
 ```bash
-# Apply the DClawApp CRD
 kubectl apply -f - <<EOF
 apiVersion: platform.dclaw.io/v1
 kind: DClawApp
@@ -24,7 +35,7 @@ metadata:
 spec:
   appId: quality
   appName: DClaw Quality
-  version: 0.1.0
+  version: 1.3.0
   category: manufacturing
   enabled: true
   frontend:
@@ -46,6 +57,11 @@ EOF
 ## Verify
 
 ```bash
+# Kubernetes
 kubectl get pods -n dclaw-quality
 kubectl get ingress -n dclaw-quality
+
+# Docker Compose
+docker compose ps
+docker compose logs -f backend
 ```

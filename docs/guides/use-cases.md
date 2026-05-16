@@ -1,23 +1,50 @@
 # Use Cases
 
-## Primary Use Cases
+## 1. Product & Batch Traceability
 
-DClaw Quality is designed for the following scenarios:
+Register every product with SKU and category. Create production batches linked to products. Track quantity produced, status (in_production → in_qa → passed / failed → shipped), and production dates.
 
-### 1. Manufacturing Workflows
+## 2. Inspection Logging
 
-Streamline your manufacturing processes with AI-powered automation.
+Quality inspectors log checks per batch:
+- Visual inspection, dimensional checks, functional tests, etc.
+- Result: **pass**, **fail**, or **pending**
+- Inspector name and timestamp for full audit trail
 
-### 2. Team Collaboration
+## 3. AI-Powered Defect Classification
 
-Share insights and collaborate across departments with unified data access.
+When a defect is found, describe it in natural language:
+> *"deep scratch on polished aluminum surface after CNC operation"*
 
-### 3. Reporting & Analytics
+The AI engine returns:
+- **Defect type:** `surface_scratch`
+- **Severity:** `low`
+- **Recommended action:** *Review polishing process; check conveyor belt for debris.*
+- **Confidence score:** 85%
 
-Generate reports and analyze trends using natural language queries.
+This accelerates root-cause analysis and standardizes defect taxonomy across teams.
 
-## Industry Examples
+## 4. Real-Time Quality Dashboard
 
-- **Startups:** Rapid deployment without dedicated DevOps
-- **Enterprise:** On-premise compliance and SSO integration
-- **Agencies:** White-label solutions for client projects
+The dashboard aggregates live data:
+- Total inspections & pass rate
+- Defects by severity (low / medium / high / critical)
+- Top defect types ranked by frequency
+- Batches by status distribution
+- Recent inspections table
+
+No manual spreadsheet updates. No mock data. Every number comes from the database.
+
+## 5. Zero-to-Value in 48 Hours
+
+1. Spin up with `docker compose up`
+2. Add your first product
+3. Create a batch and run an inspection
+4. Log a defect with AI suggest
+5. Share the dashboard with stakeholders
+
+## Industry Fit
+
+- **Mid-market manufacturers** (100–2,000 employees)
+- **Contract manufacturers** managing multiple product lines
+- **Quality consulting firms** deploying standardized QMS templates

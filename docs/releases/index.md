@@ -4,7 +4,7 @@ Release notes for DClaw Quality.
 
 ## Current Version
 
-**DClaw Quality v0.1.0**
+**DClaw Quality v1.3.0**
 
 ## Sections
 

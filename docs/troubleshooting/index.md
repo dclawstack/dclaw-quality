@@ -5,13 +5,15 @@ Common issues and solutions for DClaw Quality.
 ## Quick Diagnostics
 
 ```bash
-# Check app pods
+# Docker Compose
+docker compose ps
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f postgres
+
+# Kubernetes
 kubectl get pods -n dclaw-quality
-
-# Check logs
 kubectl logs -n dclaw-quality deployment/dclaw-quality-backend
-
-# Check database
 kubectl get clusters -n dclaw-quality
 ```
 
