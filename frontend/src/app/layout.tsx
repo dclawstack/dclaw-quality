@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/sidebar";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "DClaw Quality",
-  description: "Quality management system for manufacturing teams",
+  title: "DClaw Quality — AI-Powered Quality Management",
+  description: "Replace spreadsheets and expensive QMS suites with a modern, affordable quality platform that works in days, not quarters.",
 };
 
 export default function RootLayout({
@@ -18,12 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="ml-64 flex-1 bg-slate-50">
-            {children}
-          </main>
-        </div>
+        {children}
       </body>
     </html>
   );
