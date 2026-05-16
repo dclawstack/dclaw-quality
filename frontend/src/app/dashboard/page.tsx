@@ -1,135 +1,202 @@
 "use client";
 
-import React, { useState } from "react";
-import { Award, Search } from "lucide-react";
-import { api, QualityReport, TrendScore } from "@/lib/api";
+import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  ClipboardCheck,
+  TrendingUp,
+  AlertTriangle,
+  Boxes,
+} from "lucide-react";
+import { getDashboard, DashboardStats, apiErrorMessage } from "@/lib/api";
+
+function SeverityBar({ label, count, total }: { label: string; count: number; total: number }) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+  return (
+    <div className="mb-2">
+      <div className="flex justify-between text-xs mb-1">
+        <span className="font-medium capitalize">{label}</span>
+        <span>{count}</span>
+      </div>
+      <div className="h-2 w-full rounded-full bg-slate-100">
+        <div
+          className="h-2 rounded-full bg-red-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
-  const [batchId, setBatchId] = useState("");
-  const [productSpec, setProductSpec] = useState("");
-  const [report, setReport] = useState<QualityReport | null>(null);
-  const [trends, setTrends] = useState<TrendScore[] | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleInspect(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setTrends(null);
-    try {
-      const result = await api<QualityReport>("/reports", {
-        method: "POST",
-        body: JSON.stringify({ batch_id: batchId, product_spec: productSpec }),
-      });
-      setReport(result);
-      const trendData = await api<TrendScore[]>(`/reports/${result.id}/trends`);
-      setTrends(trendData);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoading(true);
+        const data = await getDashboard();
+        setStats(data);
+      } catch (err) {
+        setError(apiErrorMessage(err));
+      } finally {
+        setLoading(false);
+      }
     }
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-sm text-slate-500">Loading dashboard...</div>
+      </div>
+    );
   }
 
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  const totalDefects = stats?.total_defects ?? 0;
+  const severityEntries = Object.entries(stats?.defects_by_severity ?? {});
+
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b bg-white px-6 py-4 flex items-center gap-3">
-        <Award className="h-6 w-6" style={{ color: "#DC2626" }} />
-        <h1 className="text-xl font-bold" style={{ color: "#DC2626" }}>
-          DClaw Quality
-        </h1>
-      </header>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">Export</Button>
+        </div>
+      </div>
 
-      <section className="mx-auto max-w-2xl px-6 py-10">
-        <h2 className="mb-6 text-2xl font-semibold text-slate-800">Dashboard</h2>
+      {/* Stats cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Inspections</CardTitle>
+            <ClipboardCheck className="h-4 w-4 text-slate-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.total_inspections ?? 0}</div>
+            <p className="text-xs text-slate-500">
+              {stats?.inspections_this_month ?? 0} this month
+            </p>
+          </CardContent>
+        </Card>
 
-        <form onSubmit={handleInspect} className="mb-8 rounded-xl border bg-white p-6 shadow-sm">
-          <div className="mb-4">
-            <label htmlFor="batch" className="mb-1 block text-sm font-medium text-slate-700">
-              Batch ID
-            </label>
-            <input
-              id="batch"
-              type="text"
-              value={batchId}
-              onChange={(e) => setBatchId(e.target.value)}
-              placeholder="BATCH-001"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#DC2626] focus:ring-1 focus:ring-[#DC2626]"
-              required
-            />
-          </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Pass Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600">
+              {stats?.pass_rate ?? 0}%
+            </div>
+            <p className="text-xs text-slate-500">Across all inspections</p>
+          </CardContent>
+        </Card>
 
-          <div className="mb-6">
-            <label htmlFor="spec" className="mb-1 block text-sm font-medium text-slate-700">
-              Product spec
-            </label>
-            <input
-              id="spec"
-              type="text"
-              value={productSpec}
-              onChange={(e) => setProductSpec(e.target.value)}
-              placeholder="Model-A v2"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#DC2626] focus:ring-1 focus:ring-[#DC2626]"
-              required
-            />
-          </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Defects</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{totalDefects}</div>
+            <p className="text-xs text-slate-500">Logged to date</p>
+          </CardContent>
+        </Card>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-            style={{ backgroundColor: "#DC2626" }}
-          >
-            <Search className="h-4 w-4" />
-            {loading ? "Inspecting..." : "Inspect Batch"}
-          </button>
-        </form>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Batches</CardTitle>
+            <Boxes className="h-4 w-4 text-slate-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {Object.values(stats?.batches_by_status ?? {}).reduce((a, b) => a + b, 0)}
+            </div>
+            <p className="text-xs text-slate-500">In system</p>
+          </CardContent>
+        </Card>
+      </div>
 
-        {report && (
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-lg font-semibold text-slate-800">Quality Report</h3>
-            <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Pass rate</dt>
-                <dd className="mt-1 text-sm font-semibold text-slate-900">{report.pass_rate}%</dd>
-              </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Defect count</dt>
-                <dd className="mt-1 text-sm font-semibold text-slate-900">{report.defect_count}</dd>
-              </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Defect types</dt>
-                <dd className="mt-1 text-sm text-slate-900">{report.defect_types.join(", ")}</dd>
-              </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Recommended action</dt>
-                <dd className="mt-1 text-sm text-slate-900">{report.recommended_action}</dd>
-              </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Report ID</dt>
-                <dd className="mt-1 text-sm font-mono text-slate-900">{report.id}</dd>
-              </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Created at</dt>
-                <dd className="mt-1 text-sm text-slate-900">{report.created_at}</dd>
-              </div>
-            </dl>
-
-            {trends && trends.length > 0 && (
-              <div className="mt-6">
-                <h4 className="mb-3 text-sm font-semibold text-slate-700">Recent Batch Trend Scores</h4>
-                <div className="grid grid-cols-5 gap-2">
-                  {trends.map((t, i) => (
-                    <div key={i} className="rounded-lg bg-slate-50 p-3 text-center">
-                      <div className="text-xs text-slate-500">{t.batch_id}</div>
-                      <div className="mt-1 text-sm font-bold" style={{ color: "#DC2626" }}>{t.score}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Defects by severity */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Defects by Severity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {severityEntries.length === 0 && (
+              <p className="text-xs text-slate-400">No defects yet</p>
             )}
-          </div>
-        )}
-      </section>
-    </main>
+            {severityEntries.map(([label, count]) => (
+              <SeverityBar key={label} label={label} count={count} total={totalDefects} />
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Top defect types */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Top Defect Types</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(stats?.top_defect_types ?? []).length === 0 && (
+              <p className="text-xs text-slate-400">No defects yet</p>
+            )}
+            <div className="space-y-2">
+              {(stats?.top_defect_types ?? []).map((dt, i) => (
+                <div key={i} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+                  <span className="text-xs font-medium capitalize">{dt.type.replace(/_/g, " ")}</span>
+                  <Badge variant="secondary" className="text-xs">{dt.count}</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent inspections */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Recent Inspections</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(stats?.recent_inspections ?? []).length === 0 && (
+              <p className="text-xs text-slate-400">No recent inspections</p>
+            )}
+            <div className="space-y-2">
+              {(stats?.recent_inspections ?? []).slice(0, 6).map((insp) => (
+                <div key={insp.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium truncate">{insp.inspector_name}</p>
+                    <p className="text-xs text-slate-500 truncate">{insp.inspection_type}</p>
+                  </div>
+                  <Badge
+                    variant={insp.result === "pass" ? "default" : insp.result === "fail" ? "destructive" : "outline"}
+                    className="text-xs capitalize"
+                  >
+                    {insp.result}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
